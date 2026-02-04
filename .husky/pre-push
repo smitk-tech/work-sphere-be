@@ -1,0 +1,49 @@
+#!/bin/sh
+
+echo "🔍 Validating branch name..."
+
+# Get the current branch name
+BRANCH_NAME=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+if [ -z "$BRANCH_NAME" ]; then
+  echo "⚠️  Could not determine branch name. Skipping branch name validation."
+  exit 0
+fi
+
+# Skip validation for main, master, develop, and release branches
+if echo "$BRANCH_NAME" | grep -qE "^(main|master|develop|release)$"; then
+  echo "✅ Branch '$BRANCH_NAME' is a protected branch. Skipping validation."
+  exit 0
+fi
+
+# Branch name pattern: <type>/<ticket-id>-<short-description>
+# Types: feature, bugfix, hotfix, refactor, chore, docs, test
+# Ticket ID: SPOR-<number>
+# Short description: words separated by hyphens (uppercase and lowercase allowed)
+BRANCH_PATTERN="^(feature|bugfix|hotfix|refactor|chore|docs|test)\/SPOR-[0-9]+-[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"
+
+if ! echo "$BRANCH_NAME" | grep -qE "$BRANCH_PATTERN"; then
+  echo ""
+  echo "❌ Invalid branch name: '$BRANCH_NAME'"
+  echo ""
+  echo "Branch name must follow the pattern:"
+  echo "  <type>/<ticket-id>-<short-description>"
+  echo ""
+  echo "Where:"
+  echo "  • type: feature | bugfix | hotfix | refactor | chore | docs | test"
+  echo "  • ticket-id: SPOR-<number> (e.g., SPOR-123)"
+  echo "  • short-description: words separated by hyphens (uppercase and lowercase allowed)"
+  echo ""
+  echo "Examples:"
+  echo "  ✓ feature/SPOR-123-stripe-express-onboarding"
+  echo "  ✓ bugfix/SPOR-456-fix-payment-validation"
+  echo "  ✓ hotfix/SPOR-789-critical-security-patch"
+  echo "  ✓ refactor/SPOR-234-optimize-database-queries"
+  echo "  ✓ chore/SPOR-567-update-dependencies"
+  echo "  ✓ docs/SPOR-890-api-documentation"
+  echo "  ✓ test/SPOR-345-add-integration-tests"
+  echo ""
+  exit 1
+fi
+
+echo "✅ Branch name '$BRANCH_NAME' is valid!"

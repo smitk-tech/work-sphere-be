@@ -1,0 +1,12 @@
+# dependencies
+/node_modules
+pnpm-lock.yaml
+
+
+# prisma
+/prisma/migrations
+/prisma/schema.prisma
+
+# production
+/dist
+sportspass-be/.prettierignore

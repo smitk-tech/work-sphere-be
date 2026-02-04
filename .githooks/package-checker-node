@@ -1,0 +1,93 @@
+#!/bin/bash
+
+echo "🔍 Checking for major dependency upgrades in Node.js..."
+
+# Ensure npm is available
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "⚠️ pnpm not found; skipping Node package check."
+  exit 0
+fi
+
+# Skip if npm registry is unreachable to avoid blocking commits on network issues
+if ! pnpm ping --silent >/dev/null 2>&1; then
+  echo "⚠️ Skipping Node package check (pnpm registry unreachable)."
+  exit 0
+fi
+
+# Directories to check (repo root plus known app folders)
+DIRS=(
+  "."
+)
+
+has_major=0
+
+check_dir() {
+  local dir="$1"
+  if [ ! -f "$dir/package.json" ]; then
+    return
+  fi
+  echo "  • Inspecting $dir"
+
+  # Get outdated packages JSON (suppress error noise, do not fail on nonzero)
+  local outdated
+  outdated=$(cd "$dir" && pnpm outdated --json --silent 2>/dev/null || true)
+
+  # No outdated or empty output
+  if [[ -z "$outdated" || "$outdated" == "{}" ]]; then
+    return
+  fi
+
+  # Process JSON with filtering; exit code 9 indicates major updates found
+  node -e '
+    const fs = require("fs");
+    const reactPrefixes = [
+      "react",
+      "stripe",
+      "prisma",
+      "@prisma/client",
+    ];
+
+    const input = fs.readFileSync(0, "utf-8").trim();
+    let hasMajor = false;
+    try {
+      const outdated = JSON.parse(input);
+      for (const [pkg, info] of Object.entries(outdated)) {
+        if (reactPrefixes.some(prefix => pkg.startsWith(prefix))) continue;
+        const current = String(info.current || "");
+        const latest = String(info.latest || "");
+        const curMajor = parseInt(current.split(".")[0], 10);
+        const latestMajor = parseInt(latest.split(".")[0], 10);
+        if (!Number.isNaN(curMajor) && !Number.isNaN(latestMajor) && latestMajor > curMajor) {
+          console.log(`❗ Major update available: ${pkg} ${current} → ${latest}`);
+          hasMajor = true;
+        }
+      }
+    } catch (e) {
+      // Treat parse/network issues as non-blocking
+      process.exit(0);
+    }
+    if (hasMajor) {
+      process.exit(9);
+    }
+  ' <<< "$outdated"
+
+  case $? in
+    9)
+      has_major=1
+      ;;
+    *)
+      ;;
+  esac
+}
+
+for d in "${DIRS[@]}"; do
+  check_dir "$d"
+done
+
+if [ "$has_major" -eq 1 ]; then
+  echo "❌ Commit blocked due to major Node package upgrades."
+  exit 1
+fi
+
+echo "✅ No major Node package upgrades detected."
+exit 0
