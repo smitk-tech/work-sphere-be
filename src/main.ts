@@ -5,6 +5,15 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Set global API prefix
+  app.setGlobalPrefix('api/v1');
+
+  // Enable CORS for frontend communication
+  app.enableCors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+  });
+
   const config = new DocumentBuilder()
     .setTitle('WorkSphere API')
     .setDescription('The WorkSphere backend API documentation')
