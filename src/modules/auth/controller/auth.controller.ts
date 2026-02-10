@@ -1,7 +1,23 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Get,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from '../service/auth.service';
 import { SignupDto, SignupValidationPipe } from '../dtos/signup.dto';
+import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 
 /**
  * Authentication Controller
@@ -37,10 +53,30 @@ export class AuthController {
    * @returns Success message
    */
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout a user' })
   @ApiResponse({ status: 200, description: 'User successfully logged out' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   logout() {
     return this.authService.logout();
+  }
+
+  /**
+   * Get current user profile
+   * @returns User data from JWT
+   */
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getProfile(@Request() req: { user: { userId: string; email: string } }) {
+    return req.user;
   }
 }

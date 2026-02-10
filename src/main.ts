@@ -19,10 +19,21 @@ async function bootstrap() {
     .setDescription('The WorkSphere backend API documentation')
     .setVersion('1.0')
     .addTag('work-sphere')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name must match the one used in @ApiBearerAuth()
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();
