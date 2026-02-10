@@ -26,10 +26,21 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Conflict - User already exists' })
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
   async signup(@Body(SignupValidationPipe) signupDto: SignupDto) {
-    const user = await this.authService.signup(signupDto);
+    await this.authService.signup(signupDto);
     return {
       message: 'User registered successfully',
-      data: user,
     };
+  }
+
+  /**
+   * Endpoint for user logout
+   * @returns Success message
+   */
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout a user' })
+  @ApiResponse({ status: 200, description: 'User successfully logged out' })
+  logout() {
+    return this.authService.logout();
   }
 }

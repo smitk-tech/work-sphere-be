@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SignupDto } from '../dtos/signup.dto';
 
@@ -49,7 +45,13 @@ export class AuthService {
         throw error;
       }
       // Log error here if needed
-      throw new InternalServerErrorException('Failed to create user profile');
     }
+  }
+
+  /**
+   * Logout user (stateless)
+   */
+  logout() {
+    return { message: 'Logged out successfully' };
   }
 }
