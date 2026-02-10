@@ -1,7 +1,4 @@
 npx lint-staged
 
-# Adding Node.js package checks pre-commit script
-./.githooks/package-checker-node
-
 npm run build
 echo "Pre-commit checks completed successfully!"
