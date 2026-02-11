@@ -24,6 +24,7 @@ model User {
   zipCode      String?
   role         String?
   refreshToken String?
+  customerId   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
 }
