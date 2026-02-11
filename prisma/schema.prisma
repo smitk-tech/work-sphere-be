@@ -27,4 +27,42 @@ model User {
   customerId   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
+
+  payments UserPayment[]
+}
+
+enum PaymentType {
+  FULL
+  INSTALLMENT
+}
+
+
+enum PaymentStatus {
+  ACTIVE
+  CANCELLED
+  COMPLETED
+}
+
+model UserPayment {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  paymentType  PaymentType
+  totalAmount  Float
+  status       PaymentStatus @default(ACTIVE)
+  validTill    DateTime
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+
+  transactions PaymentTransaction[]
+}
+
+model PaymentTransaction {
+  id                    String      @id @default(uuid())
+  userPaymentId         String
+  userPayment           UserPayment @relation(fields: [userPaymentId], references: [id])
+  stripePaymentIntentId String?
+  amount                Float
+  status                String // e.g., 'succeeded', 'pending', 'failed'
+  createdAt             DateTime    @default(now())
 }
