@@ -1,0 +1,418 @@
+# Backend Rules (NestJS)
+
+# Cursor Rules for WorkSphere Backend
+
+## Project Overview
+
+This is a NestJS backend application with TypeScript, Prisma ORM, and comprehensive API documentation. The project follows a modular architecture with clear separation of concerns and standardized error handling.
+
+## Code Style & Architecture
+
+### NestJS Best Practices
+
+- Follow NestJS decorators and dependency injection patterns
+- Use proper module structure with controllers, services, and DTOs
+- Implement standardized error handling with ApiError class
+- Use guards for authentication and authorization
+- Follow the NestJS CLI structure for new components
+
+### TypeScript Guidelines
+
+- Use strict typing with proper interfaces and types
+- Avoid `any` type - use proper type definitions
+- Use path aliases: `@common/*`, `@modules/*`, `@helpers/*`
+- Implement standardized error handling with ApiError class
+- Use proper async/await patterns
+
+### Database & Prisma
+
+- Use Prisma for database operations
+- Follow proper migration patterns
+- Use proper database transactions where needed
+- Implement proper data validation with Joi
+- Use proper database indexing and relationships
+
+### API Design
+
+- Follow RESTful API conventions
+- Implement proper HTTP status codes
+- Use comprehensive Swagger documentation
+- Implement proper request/response DTOs
+- Use proper validation pipes
+
+## File Structure Patterns
+
+### Module Structure
+
+```
+modules/
+├── auth/
+│   ├── controllers/
+│   ├── services/
+│   ├── dtos/
+│   └── auth.module.ts
+├── organization/
+├── location/
+├── sport/
+├── team/
+├── program/
+├── payment-plan/
+└── invite/
+```
+
+### Common Patterns
+
+- Controllers handle HTTP requests and responses
+- Services contain business logic
+- DTOs define data transfer objects
+- Guards handle authentication/authorization
+- Interceptors handle cross-cutting concerns
+- Pipes handle validation and transformation
+
+## Code Generation Patterns
+
+### When creating new modules:
+
+1. Generate controller with proper Swagger decorators
+2. Generate service with standardized error handling
+3. Generate DTOs with Joi validation pipes
+4. Generate module with proper imports
+5. Add proper path aliases in tsconfig.json
+
+### When creating new endpoints:
+
+1. Add proper HTTP decorators (@Get, @Post, etc.)
+2. Add Swagger documentation (@ApiOperation, @ApiResponse)
+3. Add proper validation pipes
+4. Add standardized error handling with ApiError
+5. Add proper authentication guards where needed
+6. Add standardized pagination implementation with Pagination helper
+7. Add standardized enum implementation with enum helper
+8. While returning enum value in response, use enum-formatter helper to format the enum value
+9. Add a function to format the response (formatResponse) in the service before sending the response
+
+## Specific Patterns
+
+### Controller Pattern
+
+```typescript
+@Controller('resource')
+@ApiTags('resource')
+@UseGuards(AuthGuard)
+@ApiBearerAuth('JWT-auth')
+export class ResourceController {
+  constructor(private readonly resourceService: ResourceService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create resource' })
+  @ApiResponse({ status: 201, description: 'Resource created' })
+  async create(@Body(CreateResourcePipe) dto: CreateResourceDto) {
+    // Implementation
+  }
+}
+```
+
+### Service Pattern with Standardized Error Handling
+
+```typescript
+import { ERROR_MESSAGES } from '@common/constants';
+import { ApiError } from '@common/http';
+import { HttpStatus, Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ResourceService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+  ) {}
+
+  async create(dto: CreateResourceDto): Promise<ResourceResponseDto> {
+    try {
+      // Business logic
+      if (!dto.name) {
+        throw new ApiError(
+          HttpStatus.BAD_REQUEST,
+          ERROR_MESSAGES.COMMON.REQUEST_BODY_REQUIRED,
+        );
+      }
+
+      // More business logic...
+    } catch (error) {
+      ErrorHelper.handleError(
+        error,
+        ERROR_MESSAGES.COMMON.VALIDATION_FAILED,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+}
+```
+
+### DTO Pattern
+
+```typescript
+export class CreateResourceDto {
+  @ApiProperty({ description: 'Resource name', example: 'Example' })
+  name: string;
+
+  @ApiProperty({ description: 'Resource description' })
+  description: string;
+}
+
+export class CreateResourcePipe extends JoiValidationPipe {
+  public buildSchema(): Joi.Schema {
+    return Joi.object<CreateResourceDto>({
+      name: Joi.string().required(),
+      description: Joi.string().optional(),
+    });
+  }
+}
+```
+
+## Error Handling Standards
+
+### Use ApiError for HTTP Errors
+
+```typescript
+// ✅ Correct - Use ApiError with ERROR_MESSAGES constants
+throw new ApiError(HttpStatus.BAD_REQUEST, ERROR_MESSAGES.AUTH.USER_NOT_FOUND);
+
+// ❌ Incorrect - Don't use @nestjs/common exceptions
+throw new BadRequestException('User not found');
+throw new NotFoundException('User not found');
+```
+
+### HTTP Status Code Standards
+
+- Use `HttpStatus.BAD_REQUEST` instead of `HttpStatus.NOT_FOUND`
+- Use `HttpStatus.UNAUTHORIZED` instead of `HttpStatus.FORBIDDEN`
+- Use `HttpStatus.BAD_REQUEST` for validation errors
+- Use `HttpStatus.UNAUTHORIZED` for authentication errors
+
+### ErrorHelper Pattern
+
+```typescript
+try {
+  // Business logic
+} catch (error) {
+  ErrorHelper.handleError(
+    error,
+    ERROR_MESSAGES.COMMON.VALIDATION_FAILED,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+```
+
+## Constants Organization
+
+### Import Pattern
+
+```typescript
+// ✅ Correct - Consolidated imports
+import { API_MESSAGES, ERROR_MESSAGES } from '@common/constants';
+
+// ✅ Correct - Multiple constants from same source
+import {
+  ERROR_MESSAGES,
+  POSITIONS_CONSTANTS,
+  SPORTS_CONSTANTS,
+  SportId,
+} from '@common/constants';
+
+// ❌ Incorrect - Multiple separate imports
+import { ERROR_MESSAGES } from '@common/constants';
+import { API_MESSAGES } from '@common/constants/api-messages.constants';
+```
+
+### Constants Structure
+
+```typescript
+export const ERROR_MESSAGES = {
+  // Common errors
+  COMMON: {
+    REQUEST_BODY_REQUIRED: 'Request body is required',
+    VALIDATION_FAILED: 'Validation failed',
+    // ...
+  },
+
+  // Auth module errors
+  AUTH: {
+    USER_ALREADY_EXISTS: 'User with this email already exists',
+    INVALID_CREDENTIALS: 'Invalid credentials',
+    // ...
+  },
+
+  // Sport module errors
+  SPORT: {
+    SPORT_WITH_ID_NOT_FOUND: "Sport with ID '{id}' not found",
+    // ...
+  },
+
+  // Other modules...
+} as const;
+```
+
+### Using Constants
+
+```typescript
+// ✅ Correct - Use ERROR_MESSAGES with module-specific constants
+throw new ApiError(HttpStatus.BAD_REQUEST, ERROR_MESSAGES.AUTH.USER_NOT_FOUND);
+
+// ✅ Correct - Use dynamic replacement for IDs
+throw new ApiError(
+  HttpStatus.BAD_REQUEST,
+  ERROR_MESSAGES.SPORT.SPORT_WITH_ID_NOT_FOUND.replace('{id}', sportId),
+);
+```
+
+## Security Guidelines
+
+- Use JWT for authentication
+- Implement proper role-based access control
+- Validate all inputs with Joi
+- Use proper password hashing with bcrypt
+- Implement proper token expiration
+- Use environment variables for sensitive data
+
+## Testing Patterns
+
+- Write unit tests for services
+- Write integration tests for controllers
+- Use Jest for testing
+- Mock external dependencies
+- Test error scenarios with ApiError
+
+## Documentation
+
+- Use Swagger decorators for API documentation
+- Add proper JSDoc comments
+- Document complex business logic
+- Keep README updated
+- Document environment variables
+
+## Performance Guidelines
+
+- Use proper database indexing
+- Implement caching where appropriate
+- Use proper pagination for large datasets
+- Optimize database queries
+- Use proper connection pooling
+
+## Environment & Configuration
+
+- Use environment variables for configuration
+- Implement proper logging with Winston
+- Use proper development/production configurations
+- Implement health checks
+- Use proper Docker configuration
+
+## Database Guidelines
+
+- Use Prisma migrations for schema changes
+- Implement proper database seeding
+- Use proper database relationships
+- Implement proper data validation
+- Use transactions for complex operations
+
+## API Response Patterns
+
+- Use consistent ResponseDto structure
+- Include proper error messages from ERROR_MESSAGES
+- Use proper HTTP status codes
+- Include pagination for list endpoints
+- Provide proper data validation errors
+
+## Authentication & Authorization
+
+- Use JWT tokens for authentication
+- Implement refresh token mechanism
+- Use role-based access control
+- Implement proper token validation
+- Use guards for protected routes
+
+## Validation Patterns
+
+- Use Joi for request validation
+- Implement custom validation pipes
+- Validate all inputs
+- Provide meaningful validation errors from ERROR_MESSAGES
+- Use proper type checking
+
+## Logging Guidelines
+
+- Use Winston for logging
+- Log important business events
+- Log errors with proper context
+- Use proper log levels
+- Implement structured logging
+
+## Code Quality
+
+- Follow ESLint rules
+- Use Prettier for formatting
+- Write meaningful commit messages
+- Use proper TypeScript strict mode
+- Avoid code duplication
+- Use standardized error handling patterns
+- Organize imports properly
+
+## Development Workflow
+
+- Use proper Git branching strategy
+- Implement proper CI/CD
+- Use proper development tools
+- Follow code review process
+- Maintain proper documentation
+- Ensure all error handling follows standards
+- Verify constants are properly organized
+
+## Import Organization Standards
+
+### Priority Order for Imports
+
+1. **External libraries** (React, Node.js, etc.)
+2. **NestJS imports** (@nestjs/common, etc.)
+3. **Internal constants** (@common/constants)
+4. **Internal utilities** (@common/http, @common/provider, etc.)
+5. **Internal decorators** (@common/decorators)
+6. **Internal DTOs** (@common/dtos)
+7. **Module-specific imports** (@modules/\*)
+
+### Import Consolidation
+
+```typescript
+// ✅ Correct - Consolidated imports from same source
+import { API_MESSAGES, ERROR_MESSAGES } from '@common/constants';
+import { ApiError, ErrorHelper } from '@common/http';
+import { PrismaService, EmailService } from '@common/provider';
+
+// ❌ Incorrect - Multiple separate imports from same source
+import { API_MESSAGES } from '@common/constants';
+import { ERROR_MESSAGES } from '@common/constants';
+```
+
+## Error Message Standards
+
+### Naming Conventions
+
+- Use UPPER_SNAKE_CASE for constant names
+- Use descriptive, action-oriented names
+- Group related errors under module namespaces
+- Use consistent terminology across modules
+
+### Message Content
+
+- Be clear and specific
+- Use proper grammar and punctuation
+- Include context where helpful
+- Use placeholders for dynamic values (e.g., '{id}')
+- Keep messages concise but informative
+
+### Dynamic Value Replacement
+
+```typescript
+// ✅ Correct - Use replace for dynamic values
+ERROR_MESSAGES.SPORT.SPORT_WITH_ID_NOT_FOUND.replace('{id}', sportId)
+// ✅ Correct - Use template literals for complex replacements
+`User with ID ${userId} not found in organization ${orgId}`;
+```
