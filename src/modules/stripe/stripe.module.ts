@@ -4,8 +4,8 @@ import { StripeController } from './controller/stripe.controller';
 
 @Global()
 @Module({
-    controllers: [StripeController],
-    providers: [StripeService],
-    exports: [StripeService],
+  controllers: [StripeController],
+  providers: [StripeService],
+  exports: [StripeService],
 })
-export class StripeModule { }
+export class StripeModule {}
