@@ -17,25 +17,26 @@ export class StripeService implements OnModuleInit {
         }
 
         this.stripe = new Stripe(secretKey, {
-            apiVersion: '2025-01-27' as any,
+            apiVersion: '2026-01-28.clover' as any,
         });
         this.logger.log('Stripe Service Initialized');
     }
 
-    async createCustomer(email: string, name?: string) {
+    async createPaymentIntent() {
         try {
-            const customer = await this.stripe.customers.create({
-                email,
-                name,
+            const paymentIntent = await this.stripe.paymentIntents.create({
+                amount: 120000, // ₹1200.00
+                currency: 'inr',
+                automatic_payment_methods: {
+                    enabled: true,
+                },
             });
-            this.logger.log(`Stripe customer created: ${customer.id}`);
-            return customer;
+            this.logger.log(`Stripe payment intent created: ${paymentIntent.id}`);
+            return paymentIntent;
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Error creating Stripe customer: ${message}`);
+            this.logger.error(`Error creating Payment Intent: ${message}`);
             throw error;
         }
     }
-
-    // Add more methods as needed (e.g., createPaymentIntent, etc.)
 }
