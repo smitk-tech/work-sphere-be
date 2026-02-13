@@ -1,6 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { ApiError } from '../../../common/http/api-error';
+import { ERROR_MESSAGES } from '../../../common/constants';
 
 @Injectable()
 export class StripeService implements OnModuleInit {
@@ -24,11 +26,68 @@ export class StripeService implements OnModuleInit {
     this.logger.log('Stripe Service Initialized');
   }
 
-  async createPaymentIntent(amount: number, currency: string = 'inr') {
+  async getCustomerByEmail(email: string) {
+    try {
+      const customers = await this.stripe.customers.list({
+        email,
+        limit: 1,
+      });
+      return customers.data.length > 0 ? customers.data[0] : null;
+    } catch (error) {
+      this.logger.error(`Error fetching customer by email: ${email}`, error);
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.STRIPE.CUSTOMER_NOT_FOUND,
+      );
+    }
+  }
+
+  async createCustomer(email: string, name?: string) {
+    try {
+      const customer = await this.stripe.customers.create({
+        email,
+        name,
+      });
+      this.logger.log(`Stripe customer created: ${customer.id}`);
+      return customer;
+    } catch (error) {
+      this.logger.error(`Error creating customer: ${email}`, error);
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.STRIPE.CUSTOMER_CREATE_FAILED,
+      );
+    }
+  }
+
+  async listPaymentIntents(customerId: string) {
+    try {
+      const paymentIntents = await this.stripe.paymentIntents.list({
+        customer: customerId,
+        limit: 100,
+      });
+      return paymentIntents.data;
+    } catch (error) {
+      this.logger.error(
+        `Error listing payment intents for customer: ${customerId}`,
+        error,
+      );
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.STRIPE.PAYMENT_INTENT_CREATE_FAILED,
+      );
+    }
+  }
+
+  async createPaymentIntent(
+    amount: number,
+    currency: string = 'inr',
+    customerId?: string,
+  ) {
     try {
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to smallest currency unit
         currency: currency.toLowerCase(),
+        customer: customerId,
         automatic_payment_methods: {
           enabled: true,
         },
@@ -38,7 +97,10 @@ export class StripeService implements OnModuleInit {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error creating Payment Intent: ${message}`);
-      throw error;
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.STRIPE.PAYMENT_INTENT_CREATE_FAILED,
+      );
     }
   }
 

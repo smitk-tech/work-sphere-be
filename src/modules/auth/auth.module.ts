@@ -5,8 +5,10 @@ import { AuthService } from './service/auth.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { JwtStrategy } from './strategy/jwt.strategy';
 
+import { StripeModule } from '../stripe/stripe.module';
+
 @Module({
-  imports: [PrismaModule, PassportModule],
+  imports: [PrismaModule, PassportModule, StripeModule],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],

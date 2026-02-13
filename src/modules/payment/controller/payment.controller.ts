@@ -1,32 +1,30 @@
-import { Controller, Post, Body, UseGuards, Req, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Logger,
+  Get,
+  Query,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { PaymentService } from '../service/payment.service';
-import { InitiatePaymentDto } from '../dto/initiate-payment.dto';
 import { Request } from 'express';
 
-interface RequestWithUser extends Request {
-  user: {
-    userId: string;
-  };
-}
-
 @Controller('payment')
+@UseGuards(JwtAuthGuard)
 export class PaymentController {
   private readonly logger = new Logger(PaymentController.name);
 
   constructor(private readonly paymentService: PaymentService) {}
 
-  /**
-   * Initiates a payment by creating records in DB and Stripe PaymentIntent
-   */
-  @UseGuards(JwtAuthGuard)
-  @Post('initiate')
-  async initiatePayment(
-    @Req() req: RequestWithUser,
-    @Body() dto: InitiatePaymentDto,
-  ) {
-    // req.user is populated by JwtAuthGuard/Strategy
-    return this.paymentService.initiatePayment(req.user.userId, dto);
+  @Get('history')
+  async getPaymentHistory(@Query('email') email?: string) {
+    console.log('email from payment controller', email);
+    if (email) {
+      return this.paymentService.getPaymentHistoryByCustomerId(email);
+    }
   }
 
   /**

@@ -1,13 +1,17 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SignupDto } from '../dtos/signup.dto';
+import { StripeService } from '../../stripe/service/stripe.service';
 
 /**
  * Handle authentication-related business logic
  */
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stripeService: StripeService,
+  ) {}
 
   /**
    * Registers a new user in the database
@@ -26,7 +30,7 @@ export class AuthService {
       }
 
       // Create new user record
-      return await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           id: signupDto.id,
           email: signupDto.email,
@@ -40,11 +44,32 @@ export class AuthService {
           role: signupDto.role,
         },
       });
+
+      // Create Stripe Customer
+      try {
+        const customer = await this.stripeService.createCustomer(
+          user.email,
+          `${user.firstName} ${user.lastName}`,
+        );
+
+        // Update user with Stripe Customer ID
+        return await this.prisma.user.update({
+          where: { id: user.id },
+          data: { customerId: customer.id },
+        });
+      } catch (stripeError) {
+        console.error(
+          'Failed to create Stripe customer for new user',
+          stripeError,
+        );
+        return user;
+      }
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
       }
       // Log error here if needed
+      throw error;
     }
   }
 

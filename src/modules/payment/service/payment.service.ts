@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { StripeService } from '../../stripe/service/stripe.service';
-import { InitiatePaymentDto } from '../dto/initiate-payment.dto';
-import { PaymentType, PaymentStatus } from '@prisma/client';
+import { ApiError } from '../../../common/http/api-error';
+import { ERROR_MESSAGES } from '../../../common/constants';
 
 @Injectable()
 export class PaymentService {
@@ -13,53 +13,74 @@ export class PaymentService {
     private stripeService: StripeService,
   ) {}
 
-  async initiatePayment(userId: string, dto: InitiatePaymentDto) {
-    this.logger.log(
-      `Initiating payment for user ${userId}, type: ${dto.paymentType}`,
+  async getOrCreateStripeCustomer(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.NOT_FOUND,
+        ERROR_MESSAGES.PAYMENT.USER_NOT_FOUND,
+      );
+    }
+
+    if (user.customerId) {
+      return user.customerId;
+    }
+
+    // Check if customer exists in Stripe by email
+    const existingCustomer = await this.stripeService.getCustomerByEmail(
+      user.email,
     );
 
-    // 1. Create UserPayment record
-    // amount is ₹1,200.00 usually, but we take it from dto for flexibility (within logic)
-    const amount = dto.amount;
+    if (existingCustomer) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { customerId: existingCustomer.id },
+      });
+      return existingCustomer.id;
+    }
 
-    const expirationDate = new Date();
-    expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+    // Create new customer if not found
+    const newCustomer = await this.stripeService.createCustomer(
+      user.email,
+      `${user.firstName} ${user.lastName}`,
+    );
 
-    const userPayment = await this.prisma.userPayment.create({
-      data: {
-        userId,
-        paymentType: dto.paymentType as PaymentType,
-        totalAmount: amount,
-        validTill: expirationDate,
-        status: PaymentStatus.ACTIVE,
-      },
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { customerId: newCustomer.id },
     });
 
-    // 2. Create PaymentTransaction record
-    const transaction = await this.prisma.paymentTransaction.create({
-      data: {
-        userPaymentId: userPayment.id,
-        amount: amount,
-        status: 'pending',
-      },
+    return newCustomer.id;
+  }
+
+  async getPaymentHistoryByCustomerId(email: string) {
+    if (!email) {
+      return [];
+    }
+
+    const decodedEmail = decodeURIComponent(email);
+    const user = await this.prisma.user.findUnique({
+      where: { email: decodedEmail },
     });
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.NOT_FOUND,
+        ERROR_MESSAGES.PAYMENT.USER_NOT_FOUND,
+      );
+    }
 
-    // 3. Create Stripe PaymentIntent
-    const paymentIntent = await this.stripeService.createPaymentIntent(amount);
+    const paymentIntents = await this.stripeService.listPaymentIntents(
+      user.customerId ?? '',
+    );
 
-    // 4. Update transaction with Stripe PaymentIntent ID
-    await this.prisma.paymentTransaction.update({
-      where: { id: transaction.id },
-      data: {
-        stripePaymentIntentId: paymentIntent.id,
-      },
-    });
-
-    return {
-      clientSecret: paymentIntent.client_secret,
-      paymentId: userPayment.id,
-      transactionId: transaction.id,
-    };
+    return paymentIntents.map((pi) => ({
+      id: pi.id,
+      amount: pi.amount / 100,
+      currency: pi.currency,
+      status: pi.status,
+      createdAt: new Date(pi.created * 1000).toISOString(),
+      description: pi.description || 'Stripe Payment',
+    }));
   }
 
   async updatePaymentStatus(paymentIntentId: string, status: string) {
