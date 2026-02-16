@@ -4,7 +4,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   Get,
   Request,
 } from '@nestjs/common';
@@ -17,7 +16,6 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from '../service/auth.service';
 import { SignupDto, SignupValidationPipe } from '../dtos/signup.dto';
-import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 
 /**
  * Authentication Controller
@@ -53,7 +51,6 @@ export class AuthController {
    * @returns Success message
    */
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout a user' })
@@ -68,7 +65,7 @@ export class AuthController {
    * @returns User data from JWT
    */
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({

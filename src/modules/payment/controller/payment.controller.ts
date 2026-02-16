@@ -1,19 +1,9 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  Req,
-  Logger,
-  Get,
-  Query,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
+import { Controller, Post, Req, Logger, Get, Query } from '@nestjs/common';
 import { PaymentService } from '../service/payment.service';
 import { Request } from 'express';
 
 @Controller('payment')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class PaymentController {
   private readonly logger = new Logger(PaymentController.name);
 
