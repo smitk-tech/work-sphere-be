@@ -5,6 +5,17 @@ import { ApiError } from '../../../common/http/api-error';
 import { ERROR_MESSAGES } from '../../../common/constants';
 import Stripe from 'stripe';
 
+export interface PaymentHistoryItem {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  description: string;
+  type: 'one_time' | 'subscription';
+  downloadUrl?: string;
+}
+
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
@@ -63,7 +74,7 @@ export class PaymentService {
     const user = await this.prisma.user.findUnique({
       where: { email: decodedEmail },
     });
-    if (!user) {
+    if (!user || (!user.id && !user.customerId)) {
       throw new ApiError(
         HttpStatus.NOT_FOUND,
         ERROR_MESSAGES.PAYMENT.USER_NOT_FOUND,
@@ -75,28 +86,39 @@ export class PaymentService {
       this.stripeService.listInvoices(user.customerId ?? ''),
     ]);
 
-    const history = [
-      ...paymentIntents.map((pi) => ({
-        id: pi.id,
-        amount: pi.amount / 100,
-        currency: pi.currency,
-        status: pi.status,
-        createdAt: new Date(pi.created * 1000).toISOString(),
-        description: pi.description || 'Stripe Payment',
-      })),
-      ...invoices.map((inv) => ({
+    const history: PaymentHistoryItem[] = [
+      ...paymentIntents
+        .filter(
+          (pi: Stripe.PaymentIntent) => !(pi as { invoice?: unknown }).invoice,
+        )
+        .map((pi: Stripe.PaymentIntent) => {
+          const latestCharge = pi.latest_charge as Stripe.Charge;
+          return {
+            id: pi.id,
+            amount: pi.amount / 100,
+            currency: pi.currency,
+            status: pi.status,
+            createdAt: new Date(pi.created * 1000).toISOString(),
+            description: pi.description || 'Stripe Payment',
+            type: 'one_time' as const,
+            downloadUrl: latestCharge?.receipt_url || undefined,
+          };
+        }),
+      ...invoices.map((inv: Stripe.Invoice) => ({
         id: inv.id,
         amount: inv.total / 100,
         currency: inv.currency,
-        status: inv.status === 'paid' ? 'succeeded' : inv.status,
+        status: inv.status === 'paid' ? 'succeeded' : inv.status || 'unknown',
         createdAt: new Date(inv.created * 1000).toISOString(),
         description: inv.number || 'Stripe Invoice',
+        type: 'subscription' as const,
+        downloadUrl: inv.invoice_pdf || undefined,
       })),
     ];
 
     // Sort by date descending
     return history.sort(
-      (a, b) =>
+      (a: PaymentHistoryItem, b: PaymentHistoryItem) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }

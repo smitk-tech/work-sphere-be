@@ -64,6 +64,7 @@ export class StripeService implements OnModuleInit {
       const paymentIntents = await this.stripe.paymentIntents.list({
         customer: customerId,
         limit: 100,
+        expand: ['data.latest_charge'],
       });
       return paymentIntents.data;
     } catch (error) {
