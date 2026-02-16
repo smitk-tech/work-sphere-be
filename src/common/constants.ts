@@ -7,6 +7,7 @@ export const ERROR_MESSAGES = {
     CUSTOMER_CREATE_FAILED: 'Failed to create Stripe customer.',
     PAYMENT_INTENT_CREATE_FAILED: 'Failed to create payment intent.',
     CUSTOMER_NOT_FOUND: 'Stripe customer not found.',
+    SUBSCRIPTION_CREATE_FAILED: 'Failed to create subscription.',
   },
   PAYMENT: {
     USER_NOT_FOUND: 'User not found.',

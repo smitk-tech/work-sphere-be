@@ -1,4 +1,12 @@
-import { Controller, Post, Req, Logger, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Req,
+  Logger,
+  Get,
+  Query,
+  Body,
+} from '@nestjs/common';
 import { PaymentService } from '../service/payment.service';
 import { Request } from 'express';
 
@@ -15,6 +23,18 @@ export class PaymentController {
     if (email) {
       return this.paymentService.getPaymentHistoryByCustomerId(email);
     }
+  }
+
+  @Post('create-subscription')
+  async createSubscription(
+    @Body() body: { amount: number; currency?: string; userEmail: string },
+  ) {
+    const { amount, currency, userEmail } = body;
+    return this.paymentService.createSubscription(
+      amount,
+      currency || 'inr',
+      userEmail,
+    );
   }
 
   /**
