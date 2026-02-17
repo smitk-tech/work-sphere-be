@@ -25,6 +25,12 @@ export class PaymentController {
     }
   }
 
+  @Post('refund')
+  async refundPayment(@Body() body: { paymentIntentId: string }) {
+    const { paymentIntentId } = body;
+    return this.paymentService.refundPayment(paymentIntentId);
+  }
+
   @Post('create-subscription')
   async createSubscription(
     @Body() body: { amount: number; currency?: string; userEmail: string },

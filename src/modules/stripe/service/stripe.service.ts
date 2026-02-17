@@ -207,6 +207,7 @@ export class StripeService implements OnModuleInit {
       const invoices = await this.stripe.invoices.list({
         customer: customerId,
         limit: 100,
+        expand: ['data.charge'],
       });
       return invoices.data;
     } catch (error) {
@@ -217,6 +218,45 @@ export class StripeService implements OnModuleInit {
       throw new ApiError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Failed to list invoices',
+      );
+    }
+  }
+
+  async createRefund(paymentIntentId: string) {
+    try {
+      const refund = await this.stripe.refunds.create({
+        payment_intent: paymentIntentId,
+      });
+      this.logger.log(
+        `Stripe refund created for payment intent: ${paymentIntentId}`,
+      );
+      return refund;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error creating refund: ${message}`);
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        message || 'Failed to create refund',
+      );
+    }
+  }
+
+  async getSubscriptionWithLatestInvoice(subscriptionId: string) {
+    try {
+      const subscription = await this.stripe.subscriptions.retrieve(
+        subscriptionId,
+        {
+          expand: ['latest_invoice.payment_intent'],
+        },
+      );
+      return subscription;
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving subscription ${subscriptionId}: ${error}`,
+      );
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to retrieve subscription details',
       );
     }
   }
