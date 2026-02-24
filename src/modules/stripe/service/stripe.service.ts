@@ -143,7 +143,7 @@ export class StripeService implements OnModuleInit {
       return subscription;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error creating Subscription: ${message}`);
+      this.logger.error(`Error in creating Subscription: ${message}`);
       throw new ApiError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.STRIPE.SUBSCRIPTION_CREATE_FAILED,
