@@ -19,7 +19,7 @@ export class PaymentController {
 
   @Get('history')
   async getPaymentHistory(@Query('email') email?: string) {
-    console.log('email from payment controller', email);
+    console.log('email from payment controller ok', email);
     if (email) {
       return this.paymentService.getPaymentHistoryByCustomerId(email);
     }
