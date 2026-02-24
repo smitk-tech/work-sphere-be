@@ -11,14 +11,21 @@ jobs:
 
     steps:
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd work-sphere-be
-            git pull origin main
-            npm install
-            npm run build
-            pm2 restart backend
+  uses: appleboy/ssh-action@v0.1.10
+  with:
+    host: ${{ secrets.EC2_HOST }}
+    username: ${{ secrets.EC2_USER }}
+    key: ${{ secrets.EC2_SSH_KEY }}
+    script: |
+      echo "📥 Pulling latest code"
+      cd work-sphere-be
+      git pull origin main
+
+      echo "📦 Installing dependencies"
+      npm ci
+
+      echo "🏗️ Building project"
+      npm run build
+
+      echo "🔄 Restarting backend service"
+      pm2 restart backend || pm2 start dist/src/main.js --name backend
