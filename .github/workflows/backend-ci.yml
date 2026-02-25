@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Remote Validation
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 20m
+          script: echo "SSH Connection Successful"
       - name: Checkout Code
         uses: actions/checkout@v3
 
@@ -29,3 +37,5 @@ jobs:
 
       - name: Build Project
         run: npm run build
+
+      
