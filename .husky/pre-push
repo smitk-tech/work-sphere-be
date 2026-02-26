@@ -20,7 +20,7 @@ fi
 # Types: feature, bugfix, hotfix, refactor, chore, docs, test
 # Ticket ID: SPOR-<number>
 # Short description: words separated by hyphens (uppercase and lowercase allowed)
-BRANCH_PATTERN="^(feature|bugfix|hotfix|refactor|chore|docs|test)\/SPOR-[0-9]+-[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"
+BRANCH_PATTERN="^(feature|bugfix|hotfix|refactor|chore|docs|test)\/[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"
 
 if ! echo "$BRANCH_NAME" | grep -qE "$BRANCH_PATTERN"; then
   echo ""
@@ -31,17 +31,16 @@ if ! echo "$BRANCH_NAME" | grep -qE "$BRANCH_PATTERN"; then
   echo ""
   echo "Where:"
   echo "  • type: feature | bugfix | hotfix | refactor | chore | docs | test"
-  echo "  • ticket-id: SPOR-<number> (e.g., SPOR-123)"
   echo "  • short-description: words separated by hyphens (uppercase and lowercase allowed)"
   echo ""
   echo "Examples:"
-  echo "  ✓ feature/SPOR-123-stripe-express-onboarding"
-  echo "  ✓ bugfix/SPOR-456-fix-payment-validation"
-  echo "  ✓ hotfix/SPOR-789-critical-security-patch"
-  echo "  ✓ refactor/SPOR-234-optimize-database-queries"
-  echo "  ✓ chore/SPOR-567-update-dependencies"
-  echo "  ✓ docs/SPOR-890-api-documentation"
-  echo "  ✓ test/SPOR-345-add-integration-tests"
+  echo "  ✓ feature/stripe-express-onboarding"
+  echo "  ✓ bugfix/fix-payment-validation"
+  echo "  ✓ hotfix/critical-security-patch"
+  echo "  ✓ refactor/optimize-database-queries"
+  echo "  ✓ chore/update-dependencies"
+  echo "  ✓ docs/api-documentation"
+  echo "  ✓ test/add-integration-tests"
   echo ""
   exit 1
 fi
