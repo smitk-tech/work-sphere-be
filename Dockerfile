@@ -14,7 +14,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 COPY package*.json ./
 
 # Install dependencies (production only)
-RUN npm ci --only=production
+RUN npm install
 
 # Copy source code
 COPY . .
