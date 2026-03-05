@@ -1,24 +1,34 @@
-# Dockerfile
 # Use Node.js 20 as base
-FROM node:20
+FROM node:20-alpine
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (or yarn.lock)
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (production only)
+RUN npm ci --only=production
 
-# Copy the rest of the backend code
+# Copy source code
 COPY . .
 
-# Build the app (if you have build step, e.g., TypeScript)
+# Build the NestJS application
 RUN npm run build
 
-# Expose the port your backend runs on
+# Change ownership to non-root user
+RUN chown -R nestjs:nodejs /app
+USER nestjs
+
+# Expose the port
 EXPOSE 3000
 
-# Start the backend
-CMD ["npm", "start"]
+# Use dumb-init and the production start command
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["npm", "run", "start:prod"]
