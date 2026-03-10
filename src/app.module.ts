@@ -6,6 +6,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { UserModule } from './modules/user/user.module';
+import { MessageModule } from './modules/message/message.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { PaymentModule } from './modules/payment/payment.module';
     AuthModule,
     StripeModule,
     PaymentModule,
+    UserModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
