@@ -29,6 +29,8 @@ model User {
   updatedAt    DateTime @default(now()) @updatedAt
 
   payments UserPayment[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 }
 
 enum PaymentType {
@@ -65,4 +67,15 @@ model PaymentTransaction {
   amount                Float
   status                String // e.g., 'succeeded', 'pending', 'failed'
   createdAt             DateTime    @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  ciphertext String
+  createdAt  DateTime @default(now())
+
+  sender     User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
