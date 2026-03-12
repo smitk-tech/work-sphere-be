@@ -25,12 +25,18 @@ model User {
   role         String?
   refreshToken String?
   customerId   String?
+
+  // 🔐 Encryption Keys
+  publicKey    String?  @db.Text
+  keyAlgorithm String?  // RSA, ECC etc
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
 
-  payments UserPayment[]
-  sentMessages     Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
+  payments     UserPayment[]
+
+  sentMessages     Message[] @relation("SenderMessages")
+  receivedMessages Message[] @relation("ReceiverMessages")
 }
 
 enum PaymentType {
@@ -73,9 +79,12 @@ model Message {
   id         String   @id @default(uuid())
   senderId   String
   receiverId String
-  ciphertext String
+  ciphertext String   @db.Text
+  iv         String?  // needed for AES-GCM
+  algorithm  String?  // AES-GCM, RSA-OAEP
+
   createdAt  DateTime @default(now())
 
-  sender     User @relation("SentMessages", fields: [senderId], references: [id])
-  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender     User @relation("SenderMessages", fields: [senderId], references: [id])
+  receiver   User @relation("ReceiverMessages", fields: [receiverId], references: [id])
 }

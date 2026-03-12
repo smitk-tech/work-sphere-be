@@ -13,9 +13,22 @@ export class UserService {
         lastName: true,
         email: true,
         role: true,
+        publicKey: true,
       },
       orderBy: {
         firstName: 'asc',
+      },
+    });
+  }
+
+  async updatePublicKey(email: string, publicKey: string) {
+    return this.prisma.user.update({
+      where: { email },
+      data: { publicKey },
+      select: {
+        id: true,
+        email: true,
+        publicKey: true,
       },
     });
   }
