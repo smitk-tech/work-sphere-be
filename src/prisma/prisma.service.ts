@@ -6,8 +6,7 @@ import { LoggerService } from './logger.service';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+  implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly logger: LoggerService) {
     super({
       datasources: {
